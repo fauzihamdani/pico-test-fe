@@ -6,37 +6,42 @@ function App() {
   const [loading, setLoading] = useState<boolean>(false);
   const [inputValue, setInputValue] = useState<string>("");
   const bottomRef = useRef<HTMLDivElement | null>(null);
+  const [latVal, setLat] = useState<number | null>(null);
+  const [lngVal, setLng] = useState<number | null>(null);
 
-  const getCurrentPosition = () =>
-    new Promise<GeolocationPosition>((resolve, reject) => {
-      navigator.geolocation.getCurrentPosition(resolve, reject, {
-        enableHighAccuracy: true,
-        timeout: 10000,
-        maximumAge: 0,
-      });
-    });
+  useEffect(() => {
+    if (navigator.geolocation) {
+      navigator.geolocation.getCurrentPosition(
+        (position) => {
+          const latitude = position.coords.latitude;
+          const longitude = position.coords.longitude;
+          setLat(latitude);
+          setLng(longitude);
+        },
+        (error) => {
+          console.error("Error Code = " + error.code);
+        }
+      );
+    } else {
+      console.log("Geoloc is not supported by this environtment");
+    }
+  }, []);
+
+  // const getCurrentPosition = () =>
+  //   new Promise<GeolocationPosition>((resolve, reject) => {
+  //     navigator.geolocation.getCurrentPosition(resolve, reject, {
+  //       enableHighAccuracy: true,
+  //       timeout: 10000,
+  //       maximumAge: 0,
+  //     });
+  //   });
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     setLoading(true);
 
-    let lat: number | undefined;
-    let lng: number | undefined;
-
-    try {
-      // Try to get coords (no API key needed)
-      const pos = await getCurrentPosition();
-      lat = pos.coords.latitude;
-      lng = pos.coords.longitude;
-
-      console.log(lat);
-    } catch (geoErr) {
-      console.warn(
-        "Geolocation failed or denied, continuing without coords:",
-        geoErr
-      );
-      // optional: show a toast to user
-    }
+    // let lat: number | undefined;
+    // let lng: number | undefined;
 
     try {
       const res = await fetch("http://localhost:3008/api/chats", {
@@ -44,7 +49,7 @@ function App() {
         headers: {
           "Content-Type": "application/json",
         },
-        body: JSON.stringify({ message: inputValue, lat, lng }),
+        body: JSON.stringify({ message: inputValue, lat: latVal, lng: lngVal }),
       });
 
       const json = await res.json();
@@ -118,7 +123,6 @@ function App() {
         <form onSubmit={handleSubmit}>
           {/* <label>
             Enter command:{" "} */}
-
           <input
             type="text"
             value={inputValue}
@@ -134,10 +138,9 @@ function App() {
               borderRadius: "10px",
             }}
           />
-
           {/* </label> */}
           <button style={{ height: "40px", width: "100px" }} type="submit">
-            Submit
+            submit
           </button>
         </form>
       </div>
